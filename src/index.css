@@ -1,0 +1,297 @@
+/* ================================
+   ECOWATCH GLOBAL STYLES
+================================ */
+
+:root {
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  color: #26352d;
+  background: #f4f8f5;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+
+  --primary-green: #2f6b4f;
+  --dark-green: #1f4d3a;
+  --deep-green: #173c2d;
+
+  --soft-green: #e8f2ec;
+  --light-green: #f4f8f5;
+  --off-white: #fafcfa;
+
+  --text-primary: #26352d;
+  --text-secondary: #718078;
+
+  --border: #dce7e0;
+  --white: #ffffff;
+
+  --danger: #b94a48;
+  --warning: #b57a21;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+
+  background: var(--light-green);
+  color: var(--text-primary);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+ul {
+  list-style: none;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eef4f0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b7cbbf;
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-green);
+}
+
+/* ================================
+   ECOWATCH FOOTER
+================================ */
+
+.footer {
+  width: 100%;
+  background: #102b20;
+  color: #e8f3eb;
+  margin-top: auto;
+  font-family: inherit;
+}
+
+/* Footer Main Section */
+.footer-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 55px 6% 45px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  gap: 45px;
+}
+
+/* Brand Section */
+.footer-brand {
+  max-width: 330px;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.footer-logo-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #d9f99d;
+  color: #1d542f;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.footer-logo span {
+  color: #ffffff;
+  font-size: 25px;
+  font-weight: 750;
+  letter-spacing: -0.6px;
+}
+
+.footer-brand p {
+  margin: 0;
+  color: #b8cfc0;
+  font-size: 14px;
+  line-height: 1.9;
+  max-width: 300px;
+}
+
+/* Footer Columns */
+.footer-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.footer-column h4 {
+  color: #d9f99d;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 7px 0 8px;
+  letter-spacing: 0.2px;
+}
+
+.footer-column a {
+  color: #c4d6ca;
+  text-decoration: none;
+  font-size: 14px;
+  line-height: 1.6;
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.footer-column a:hover {
+  color: #d9f99d;
+  transform: translateX(4px);
+}
+
+/* Contact Section */
+.footer-contact {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  color: #c4d6ca;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.footer-contact svg {
+  flex-shrink: 0;
+  color: #a3d977;
+  margin-top: 3px;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 6%;
+  border-top: 1px solid rgba(220, 245, 226, 0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.footer-bottom p {
+  margin: 0;
+  color: #a9c2b2;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.footer-made {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.footer-made svg {
+  color: #f6a6a6;
+  fill: #f6a6a6;
+  flex-shrink: 0;
+}
+
+/* Tablet */
+@media (max-width: 950px) {
+  .footer-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 38px 30px;
+    padding: 45px 5%;
+  }
+
+  .footer-brand {
+    max-width: 100%;
+  }
+
+  .footer-bottom {
+    padding: 20px 5%;
+  }
+}
+
+/* Mobile */
+@media (max-width: 560px) {
+  .footer-main {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding: 38px 24px;
+  }
+
+  .footer-brand {
+    max-width: 100%;
+  }
+
+  .footer-logo span {
+    font-size: 23px;
+  }
+
+  .footer-column {
+    gap: 12px;
+  }
+
+  .footer-column h4 {
+    margin-bottom: 4px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 18px;
+    gap: 10px;
+  }
+
+  .footer-made {
+    text-align: center;
+  }
+}
