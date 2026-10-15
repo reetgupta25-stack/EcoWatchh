@@ -12,14 +12,15 @@ const connectDB = async () => {
 
   try {
     console.log("Connecting to MongoDB Atlas...");
-await mongoose.connect(mongoURI, {
-  serverSelectionTimeoutMS: 20000,
-  connectTimeoutMS: 15000,
-});
+
+    await mongoose.connect(mongoURI, {
+      serverSelectionTimeoutMS: 20000,
+      connectTimeoutMS: 15000,
+    });
 
     console.log("MongoDB connected successfully!");
-    console.log(`Connected host: ${mongoose.connection.host}`);
-    console.log(`Database name: ${mongoose.connection.name}`);
+    console.log("Connected host:", mongoose.connection.host);
+    console.log("Database name:", mongoose.connection.name);
 
     return mongoose.connection;
   } catch (error) {
