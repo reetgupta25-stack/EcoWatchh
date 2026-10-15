@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   MapPin,
@@ -8,26 +9,54 @@ import {
 } from "lucide-react";
 
 import StatusBadge from "../../components/StatusBadge";
-import { tasks, issues } from "../../data/mockData";
+import { apiRequest } from "../../lib/api";
 
-function TaskDetails({ taskId = "TSK001" }) {
-  const task = tasks.find(
-    (item) => item.id === taskId
-  );
+function TaskDetails() {
+  const { taskId } = useParams();
+  const navigate = useNavigate();
+  const [task, setTask] = useState(null);
+  const [taskStatus, setTaskStatus] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const issue = issues.find(
-    (item) => item.id === task?.issueId
-  );
+  useEffect(() => {
+    apiRequest(`/issues/${encodeURIComponent(taskId)}`)
+      .then((data) => {
+        setTask(data.issue);
+        setTaskStatus(data.issue.status);
+      })
+      .catch((requestError) => {
+        if (requestError.status === 401) navigate("/login", { replace: true });
+        else setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+  }, [navigate, taskId]);
 
-  const [taskStatus, setTaskStatus] = useState(
-    task?.status || "In Progress"
-  );
+  const saveStatus = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const result = await apiRequest(`/issues/${task._id}`, {
+        method: "PATCH",
+        body: { status: taskStatus },
+      });
+      setTask(result.issue);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="empty-state">Loading task...</div>;
 
   if (!task) {
     return (
       <div className="empty-state">
         <h2>Task Not Found</h2>
-        <p>The requested task could not be found.</p>
+        <p>{error || "The requested task could not be found."}</p>
+        <Link className="back-btn" to="/worker/tasks">Back to My Tasks</Link>
       </div>
     );
   }
@@ -35,22 +64,22 @@ function TaskDetails({ taskId = "TSK001" }) {
   return (
     <div className="task-details-page">
 
-      <button className="back-btn">
+      <Link className="back-btn" to="/worker/tasks">
         <ArrowLeft size={18} />
         Back to My Tasks
-      </button>
+      </Link>
 
       <div className="page-header">
 
         <div>
           <p className="page-eyebrow">
-            TASK #{task.id}
+            TASK #{task._id}
           </p>
 
           <h1>{task.title}</h1>
 
           <p>
-            Linked Issue: {task.issueId}
+            Linked report: {task.title}
           </p>
         </div>
 
@@ -82,7 +111,7 @@ function TaskDetails({ taskId = "TSK001" }) {
 
                 <div>
                   <span>Assigned Date</span>
-                  <strong>{task.assignedDate}</strong>
+                    <strong>{new Date(task.updatedAt).toLocaleDateString()}</strong>
                 </div>
               </div>
 
@@ -100,7 +129,7 @@ function TaskDetails({ taskId = "TSK001" }) {
 
                 <div>
                   <span>Deadline</span>
-                  <strong>{task.deadline}</strong>
+                  <strong>{task.deadline ? new Date(task.deadline).toLocaleDateString() : "Not set"}</strong>
                 </div>
               </div>
 
@@ -108,13 +137,13 @@ function TaskDetails({ taskId = "TSK001" }) {
 
           </div>
 
-          {issue && (
+          {task && (
             <div className="details-card">
 
               <h2>Issue Description</h2>
 
               <p className="details-description">
-                {issue.description}
+                {task.description}
               </p>
 
             </div>
@@ -135,6 +164,7 @@ function TaskDetails({ taskId = "TSK001" }) {
             <div className="task-status-options">
 
               <button
+                type="button"
                 className={
                   taskStatus === "In Progress"
                     ? "status-option active"
@@ -146,6 +176,7 @@ function TaskDetails({ taskId = "TSK001" }) {
               </button>
 
               <button
+                type="button"
                 className={
                   taskStatus === "Completed"
                     ? "status-option active"
@@ -159,8 +190,9 @@ function TaskDetails({ taskId = "TSK001" }) {
 
             </div>
 
-            <button className="primary-btn full-width-btn">
-              Save Status
+            {error && <p role="alert" className="error-message">{error}</p>}
+            <button className="primary-btn full-width-btn" onClick={saveStatus} disabled={saving || taskStatus === task.status}>
+              {saving ? "Saving..." : "Save Status"}
             </button>
 
           </div>

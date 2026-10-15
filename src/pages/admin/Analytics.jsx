@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   TrendingUp,
   CheckCircle2,
@@ -6,26 +7,49 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-import {
-  categories,
-  dashboardStats,
-  issues,
-  monthlyIssues,
-  tasks,
-  users,
-  workers,
-} from "../../data/mockData";
+import { apiRequest } from "../../lib/api";
 
 function Analytics() {
-  const resolutionRate = Math.round(
-    (dashboardStats.completedIssues / dashboardStats.totalIssues) * 100
-  );
-  const highPriorityIssues = issues.filter(
-    (issue) => issue.priority === "High"
-  ).length;
-  const maxValue = Math.max(
-    ...monthlyIssues.map((item) => item.reported)
-  );
+  const navigate = useNavigate();
+  const [issues, setIssues] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    Promise.all([apiRequest("/issues"), apiRequest("/users")])
+      .then(([issueData, userData]) => {
+        setIssues(issueData.issues || []);
+        setUsers(userData.users || []);
+      })
+      .catch((requestError) => {
+        if (requestError.status === 401) navigate("/login", { replace: true });
+        else setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+  }, [navigate]);
+
+  const completedCount = issues.filter((issue) => ["Completed", "Verified"].includes(issue.status)).length;
+  const resolutionRate = issues.length ? Math.round((completedCount / issues.length) * 100) : 0;
+  const highPriorityIssues = issues.filter((issue) => ["High", "Critical"].includes(issue.priority)).length;
+  const months = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - (5 - index), 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const monthIssues = issues.filter((issue) => issue.createdAt?.startsWith(key));
+    return {
+      month: date.toLocaleString("en", { month: "short" }),
+      reported: monthIssues.length,
+      resolved: monthIssues.filter((issue) => ["Completed", "Verified"].includes(issue.status)).length,
+    };
+  });
+  const maxValue = Math.max(1, ...months.map((item) => item.reported));
+  const categories = [...new Set(issues.map((issue) => issue.category))].map((name) => ({
+    id: name,
+    name,
+    count: issues.filter((issue) => issue.category === name).length,
+  }));
+  const assignedTasks = issues.filter((issue) => issue.assignedTo);
 
   return (
     <div className="admin-page">
@@ -45,6 +69,8 @@ function Analytics() {
 
       </div>
 
+      {error && <p className="error-message" role="alert">{error}</p>}
+
       {/* Analytics Stats */}
       <div className="stats-grid">
 
@@ -54,8 +80,8 @@ function Analytics() {
           </div>
 
           <span>Total Reports</span>
-          <strong>{dashboardStats.totalIssues}</strong>
-          <small>+12% this month</small>
+          <strong>{loading ? "—" : issues.length}</strong>
+          <small>Stored reports</small>
         </div>
 
         <div className="analytics-stat-card">
@@ -64,8 +90,8 @@ function Analytics() {
           </div>
 
           <span>Resolution Rate</span>
-          <strong>{resolutionRate}%</strong>
-          <small>+8% from last month</small>
+          <strong>{loading ? "—" : `${resolutionRate}%`}</strong>
+          <small>Completed or verified</small>
         </div>
 
         <div className="analytics-stat-card">
@@ -74,8 +100,8 @@ function Analytics() {
           </div>
 
           <span>Avg. Resolution Time</span>
-          <strong>2.4 Days</strong>
-          <small>15% faster</small>
+          <strong>—</strong>
+          <small>Resolution dates are not recorded</small>
         </div>
 
         <div className="analytics-stat-card">
@@ -84,7 +110,7 @@ function Analytics() {
           </div>
 
           <span>High Priority</span>
-          <strong>{highPriorityIssues}</strong>
+          <strong>{loading ? "—" : highPriorityIssues}</strong>
           <small>Needs attention</small>
         </div>
 
@@ -100,17 +126,17 @@ function Analytics() {
         <div className="analytics-links-grid">
           <Link className="analytics-link-card" to="/admin/tasks">
             <span>Active tasks</span>
-            <strong>{tasks.filter((task) => task.status === "In Progress").length}</strong>
+            <strong>{loading ? "—" : assignedTasks.filter((issue) => issue.status === "In Progress").length}</strong>
             <small>Review task assignments</small>
           </Link>
           <Link className="analytics-link-card" to="/admin/users">
             <span>Platform users</span>
-            <strong>{users.length}</strong>
+            <strong>{loading ? "—" : users.length}</strong>
             <small>Manage registered accounts</small>
           </Link>
           <Link className="analytics-link-card" to="/admin/workers">
             <span>Field workers</span>
-            <strong>{workers.length}</strong>
+            <strong>{loading ? "—" : users.filter((user) => user.role === "worker").length}</strong>
             <small>Review worker availability</small>
           </Link>
           <Link className="analytics-link-card" to="/admin/map">
@@ -135,7 +161,7 @@ function Analytics() {
 
         <div className="chart-area">
 
-          {monthlyIssues.map((item) => (
+              {months.map((item) => (
 
             <div
               className="chart-column"
@@ -226,7 +252,7 @@ function Analytics() {
                   <div
                     className="progress-fill"
                     style={{
-                      width: `${(category.count / 82) * 100}%`,
+                      width: `${issues.length ? (category.count / issues.length) * 100 : 0}%`,
                     }}
                   ></div>
                 </div>

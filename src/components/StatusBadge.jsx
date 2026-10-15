@@ -4,7 +4,12 @@ function StatusBadge({ status }) {
   const getStatusClass = () => {
     switch (status?.toLowerCase()) {
       case "pending":
+      case "reported":
+      case "under review":
         return "status-pending";
+
+      case "assigned":
+        return "status-progress";
 
       case "in progress":
         return "status-progress";

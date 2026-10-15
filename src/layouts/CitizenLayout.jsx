@@ -1,10 +1,12 @@
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
+import RequireRole from "../components/RequireRole";
 
 function CitizenLayout({ children }) {
   return (
-    <div className="app-layout">
+    <RequireRole role="citizen">
+      <div className="app-layout">
 
       {/* Sidebar */}
       <Sidebar role="citizen" />
@@ -25,7 +27,8 @@ function CitizenLayout({ children }) {
 
       </div>
 
-    </div>
+      </div>
+    </RequireRole>
   );
 }
 

@@ -1,4 +1,5 @@
-import React from "react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FileWarning,
   Clock3,
@@ -9,13 +10,34 @@ import {
 } from "lucide-react";
 
 import StatCard from "../../components/StatCard";
-import IssueCard from "../../components/IssueCard";
-import { dashboardStats, issues } from "../../data/mockData";
+import StatusBadge from "../../components/StatusBadge";
+import { apiRequest } from "../../lib/api";
 
 function CitizenDashboard() {
-  const myIssues = issues.filter(
-    (issue) => issue.reportedBy === "Shivani Sharma"
-  );
+  const navigate = useNavigate();
+  const [myIssues, setMyIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    apiRequest("/issues")
+      .then((data) => setMyIssues(data.issues || []))
+      .catch((requestError) => {
+        if (requestError.status === 401) navigate("/login", { replace: true });
+        else setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+  }, [navigate]);
+
+  const pendingCount = myIssues.filter((issue) =>
+    ["Reported", "Under Review"].includes(issue.status)
+  ).length;
+  const inProgressCount = myIssues.filter((issue) => issue.status === "In Progress").length;
+  const completedCount = myIssues.filter((issue) => ["Completed", "Verified"].includes(issue.status)).length;
+  const user = (() => {
+    try { return JSON.parse(sessionStorage.getItem("ecowatchUser")) || {}; }
+    catch { return {}; }
+  })();
 
   return (
     <div className="dashboard-page">
@@ -25,17 +47,17 @@ function CitizenDashboard() {
         <div>
           <p className="page-eyebrow">CITIZEN PORTAL</p>
 
-          <h1>Welcome back, Shivani 🌱</h1>
+            <h1>Welcome back, {user.name || "Citizen"}</h1>
 
           <p>
             Help make your community cleaner, greener and better.
           </p>
         </div>
 
-        <button className="primary-btn">
+        <Link className="primary-btn" to="/citizen/report-issue">
           <PlusCircle size={18} />
           Report an Issue
-        </button>
+        </Link>
       </div>
 
       {/* Stats */}
@@ -43,28 +65,28 @@ function CitizenDashboard() {
 
         <StatCard
           title="Total Issues"
-          value={dashboardStats.totalIssues}
+          value={loading ? "—" : myIssues.length}
           icon={<FileWarning size={24} />}
-          subtitle="Platform reports"
+          subtitle="Your reports"
         />
 
         <StatCard
           title="Pending"
-          value={dashboardStats.pendingIssues}
+          value={loading ? "—" : pendingCount}
           icon={<Clock3 size={24} />}
           subtitle="Awaiting action"
         />
 
         <StatCard
           title="In Progress"
-          value={dashboardStats.inProgressIssues}
+          value={loading ? "—" : inProgressCount}
           icon={<LoaderCircle size={24} />}
           subtitle="Being resolved"
         />
 
         <StatCard
           title="Completed"
-          value={dashboardStats.completedIssues}
+          value={loading ? "—" : completedCount}
           icon={<CheckCircle2 size={24} />}
           subtitle="Successfully resolved"
         />
@@ -84,21 +106,23 @@ function CitizenDashboard() {
             </p>
           </div>
 
-          <button className="text-btn">
+          <Link className="text-btn" to="/citizen/my-issues">
             View All
             <ArrowRight size={16} />
-          </button>
+          </Link>
 
         </div>
 
-        {myIssues.length > 0 ? (
+        {error ? <div className="empty-state" role="alert">{error}</div> : loading ? <div className="empty-state">Loading your reports...</div> : myIssues.length > 0 ? (
           <div className="issues-grid">
 
-            {myIssues.map((issue) => (
-              <IssueCard
-                key={issue.id}
-                issue={issue}
-              />
+            {myIssues.slice(0, 4).map((issue) => (
+              <Link className="issue-card" key={issue._id} to={`/citizen/issues/${issue._id}`}>
+                <div className="issue-card-top"><span>{issue.category}</span><StatusBadge status={issue.status} /></div>
+                <h3 className="issue-title">{issue.title}</h3>
+                <p className="issue-description">{issue.description}</p>
+                <span className="issue-id">{issue.location}</span>
+              </Link>
             ))}
 
           </div>
@@ -112,10 +136,10 @@ function CitizenDashboard() {
               You haven't reported any environmental issues yet.
             </p>
 
-            <button className="primary-btn">
+            <Link className="primary-btn" to="/citizen/report-issue">
               <PlusCircle size={18} />
               Report Your First Issue
-            </button>
+            </Link>
           </div>
         )}
 
@@ -134,10 +158,10 @@ function CitizenDashboard() {
           </p>
         </div>
 
-        <button className="secondary-btn">
+        <Link className="secondary-btn" to="/citizen/report-issue">
           Report Issue
           <ArrowRight size={17} />
-        </button>
+        </Link>
 
       </section>
 

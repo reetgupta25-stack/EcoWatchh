@@ -101,7 +101,7 @@ function Sidebar({ role: requestedRole }) {
 
   const role = String(requestedRole || user.role || "citizen").toLowerCase();
   const navigation = navigationByRole[role] || navigationByRole.citizen;
-  const userName = user.name || "Shivani";
+  const userName = user.name || "EcoWatch User";
   const roleName = role.charAt(0).toUpperCase() + role.slice(1);
 
   const handleLogout = () => {

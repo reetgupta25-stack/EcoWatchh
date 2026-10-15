@@ -1,11 +1,12 @@
-import React from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
+import RequireRole from "../components/RequireRole";
 
 function SupervisorLayout({ children }) {
   return (
-    <div className="app-layout">
+    <RequireRole role="supervisor">
+      <div className="app-layout">
 
       {/* Sidebar */}
       <Sidebar role="supervisor" />
@@ -26,7 +27,8 @@ function SupervisorLayout({ children }) {
 
       </div>
 
-    </div>
+      </div>
+    </RequireRole>
   );
 }
 

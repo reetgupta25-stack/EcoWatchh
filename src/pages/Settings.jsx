@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiRequest } from "../lib/api";
 
 function readStoredUser() {
   try {
@@ -27,7 +28,7 @@ function Settings({ role }) {
   );
   const [message, setMessage] = useState("");
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setMessage("");
 
@@ -36,14 +37,19 @@ function Settings({ role }) {
         `ecowatchSettings:${role}`,
         JSON.stringify({ issueNotifications })
       );
+      const result = await apiRequest("/users/me", {
+        method: "PATCH",
+        body: profile,
+      });
       const user = readStoredUser();
       sessionStorage.setItem(
         "ecowatchUser",
-        JSON.stringify({ ...user, ...profile, role: user.role || role })
+        JSON.stringify({ ...user, ...result.user })
       );
-      setMessage("Your settings have been saved.");
-    } catch {
-      setMessage("Settings could not be saved. Check your browser storage and try again.");
+      setProfile({ name: result.user.name, email: result.user.email });
+      setMessage("Your profile and preferences have been saved.");
+    } catch (error) {
+      setMessage(error.message || "Settings could not be saved.");
     }
   };
 
@@ -60,7 +66,7 @@ function Settings({ role }) {
       <form className="settings-card" onSubmit={handleSubmit}>
         <section className="settings-section">
           <h2>Profile details</h2>
-          <p>These details are saved for this browser session.</p>
+          <p>Your profile is stored with your EcoWatch account.</p>
           <label className="settings-field">
             <span>Full name</span>
             <input

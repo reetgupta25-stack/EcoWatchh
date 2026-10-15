@@ -1,157 +1,72 @@
-import React, { useState } from "react";
-import {
-  Search,
-  UserCog,
-  Phone,
-  MapPin,
-  ClipboardList,
-  CheckCircle2,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { CheckCircle2, ClipboardList, Clock3, MapPin } from "lucide-react";
+import StatCard from "../../components/StatCard";
+import StatusBadge from "../../components/StatusBadge";
+import { apiRequest } from "../../lib/api";
 
-import { workers } from "../../data/mockData";
+function WorkerDashboard() {
+  const navigate = useNavigate();
+  const [issues, setIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-function ManageWorkers() {
-  const [search, setSearch] = useState("");
+  useEffect(() => {
+    apiRequest("/issues")
+      .then((data) => setIssues(data.issues || []))
+      .catch((requestError) => {
+        if (requestError.status === 401) navigate("/login", { replace: true });
+        else setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+  }, [navigate]);
 
-  const filteredWorkers = workers.filter(
-    (worker) =>
-      worker.name.toLowerCase().includes(search.toLowerCase()) ||
-      worker.area.toLowerCase().includes(search.toLowerCase())
-  );
+  const activeIssues = issues.filter((issue) => issue.status === "In Progress");
+  const completedIssues = issues.filter((issue) => ["Completed", "Verified"].includes(issue.status));
 
   return (
-    <div className="supervisor-page">
-
-      {/* Header */}
+    <div className="dashboard-page">
       <div className="page-header">
-
         <div>
-          <p className="page-eyebrow">TEAM MANAGEMENT</p>
-
-          <h1>Manage Workers</h1>
-
-          <p>
-            Monitor worker availability, assignments and performance.
-          </p>
+          <p className="page-eyebrow">FIELD OPERATIONS</p>
+          <h1>Worker Dashboard</h1>
+          <p>Review your assignments and update work as it progresses.</p>
         </div>
-
+        <Link className="primary-btn" to="/worker/tasks">View My Tasks</Link>
       </div>
 
-      {/* Search */}
-      <div className="filter-card">
+      {error && <p className="error-message" role="alert">{error}</p>}
 
-        <div className="search-box">
-
-          <Search size={18} />
-
-          <input
-            type="text"
-            placeholder="Search workers..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-        </div>
-
+      <div className="stats-grid">
+        <StatCard title="Assigned Tasks" value={loading ? "—" : issues.length} icon={<ClipboardList size={24} />} subtitle="Assigned to you" />
+        <StatCard title="In Progress" value={loading ? "—" : activeIssues.length} icon={<Clock3 size={24} />} subtitle="Currently active" />
+        <StatCard title="Completed" value={loading ? "—" : completedIssues.length} icon={<CheckCircle2 size={24} />} subtitle="Resolved assignments" />
       </div>
 
-      {/* Workers */}
-      <div className="workers-grid">
-
-        {filteredWorkers.map((worker) => (
-
-          <div
-            className="worker-card"
-            key={worker.id}
-          >
-
-            {/* Top */}
-            <div className="worker-card-top">
-
-              <div className="worker-avatar">
-                {worker.name.charAt(0)}
-              </div>
-
-              <span
-                className={`worker-status ${
-                  worker.status === "Available"
-                    ? "available"
-                    : "busy"
-                }`}
-              >
-                <span></span>
-                {worker.status}
-              </span>
-
-            </div>
-
-            {/* Name */}
-            <div className="worker-info">
-
-              <h3>{worker.name}</h3>
-
-              <p>
-                <UserCog size={15} />
-                Field Worker
-              </p>
-
-            </div>
-
-            {/* Details */}
-            <div className="worker-details">
-
-              <div>
-                <MapPin size={16} />
-                <span>{worker.area}</span>
-              </div>
-
-              <div>
-                <Phone size={16} />
-                <span>{worker.phone}</span>
-              </div>
-
-            </div>
-
-            {/* Performance */}
-            <div className="worker-performance">
-
-              <div>
-
-                <ClipboardList size={18} />
-
-                <div>
-                  <strong>{worker.assignedTasks}</strong>
-                  <span>Assigned</span>
+      <section className="dashboard-section">
+        <div className="section-header">
+          <div><h2>Recent Assignments</h2><p>Your latest assigned environmental reports.</p></div>
+          <Link className="text-btn" to="/worker/tasks">All tasks</Link>
+        </div>
+        {loading ? <div className="empty-state">Loading assignments...</div> : issues.length ? (
+          <div className="worker-tasks-grid">
+            {issues.slice(0, 4).map((issue) => (
+              <article className="task-detail-card" key={issue._id}>
+                <div className="task-card-header"><span className="task-id">{issue._id}</span><StatusBadge status={issue.status} /></div>
+                <h3>{issue.title}</h3>
+                <p>{issue.category}</p>
+                <div className="task-card-info"><div><MapPin size={16} />{issue.location}</div></div>
+                <div className="task-card-footer">
+                  <span className={`priority-${issue.priority.toLowerCase()}`}>{issue.priority} Priority</span>
+                  <Link className="primary-btn" to={`/worker/tasks/${issue._id}`}>Open Task</Link>
                 </div>
-
-              </div>
-
-              <div>
-
-                <CheckCircle2 size={18} />
-
-                <div>
-                  <strong>{worker.completedTasks}</strong>
-                  <span>Completed</span>
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* Action */}
-            <button className="secondary-btn worker-action">
-              View Tasks
-            </button>
-
+              </article>
+            ))}
           </div>
-
-        ))}
-
-      </div>
-
+        ) : <div className="empty-state">No tasks have been assigned to you.</div>}
+      </section>
     </div>
   );
 }
 
-export default ManageWorkers;
+export default WorkerDashboard;

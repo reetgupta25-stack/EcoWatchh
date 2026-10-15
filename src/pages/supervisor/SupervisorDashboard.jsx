@@ -1,4 +1,5 @@
-import React from "react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ClipboardList,
   Clock3,
@@ -10,20 +11,34 @@ import {
 
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
-import { tasks, workers, issues } from "../../data/mockData";
+import { apiRequest } from "../../lib/api";
 
 function SupervisorDashboard() {
-  const inProgressTasks = tasks.filter(
-    (task) => task.status === "In Progress"
-  ).length;
+  const navigate = useNavigate();
+  const [issues, setIssues] = useState([]);
+  const [workers, setWorkers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const completedTasks = tasks.filter(
-    (task) => task.status === "Completed"
-  ).length;
+  useEffect(() => {
+    Promise.all([apiRequest("/issues"), apiRequest("/users?role=worker")])
+      .then(([issueData, userData]) => {
+        setIssues(issueData.issues || []);
+        setWorkers(userData.users || []);
+      })
+      .catch((requestError) => {
+        if (requestError.status === 401) navigate("/login", { replace: true });
+        else setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+  }, [navigate]);
 
-  const highPriorityIssues = issues.filter(
-    (issue) => issue.priority === "High"
-  ).length;
+  const tasks = issues.filter((issue) => issue.assignedTo);
+  const inProgressTasks = tasks.filter((task) => task.status === "In Progress").length;
+  const completedTasks = tasks.filter((task) => ["Completed", "Verified"].includes(task.status)).length;
+  const highPriorityIssues = issues.filter((issue) => ["High", "Critical"].includes(issue.priority)).length;
+  const activeWorkers = new Set(tasks.filter((task) => !["Completed", "Verified"].includes(task.status)).map((task) => task.assignedTo?._id)).size;
+  const completionRate = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
   return (
     <div className="dashboard-page">
@@ -41,34 +56,35 @@ function SupervisorDashboard() {
         </div>
       </div>
 
+      {error && <p className="error-message" role="alert">{error}</p>}
+
       {/* Stats */}
       <div className="stats-grid">
 
         <StatCard
           title="Assigned Tasks"
-          value={tasks.length}
+          value={loading ? "—" : tasks.length}
           icon={<ClipboardList size={24} />}
           subtitle="Total assigned"
         />
 
         <StatCard
           title="In Progress"
-          value={inProgressTasks}
+          value={loading ? "—" : inProgressTasks}
           icon={<Clock3 size={24} />}
           subtitle="Currently active"
         />
 
         <StatCard
           title="Completed"
-          value={completedTasks}
+          value={loading ? "—" : completedTasks}
           icon={<CheckCircle2 size={24} />}
-          trend="+14%"
-          subtitle="This month"
+          subtitle="Completed or verified"
         />
 
         <StatCard
           title="Active Workers"
-          value={workers.length}
+          value={loading ? "—" : workers.filter((worker) => worker.isActive).length}
           icon={<Users size={24} />}
           subtitle="Field workers"
         />
@@ -86,7 +102,7 @@ function SupervisorDashboard() {
 
           <div>
             <span>Team Efficiency</span>
-            <strong>86%</strong>
+            <strong>{loading ? "—" : `${completionRate}%`}</strong>
           </div>
 
         </div>
@@ -113,9 +129,7 @@ function SupervisorDashboard() {
           <div>
             <span>Available Workers</span>
             <strong>
-              {workers.filter(
-                (worker) => worker.status === "Available"
-              ).length}
+              {loading ? "—" : Math.max(0, workers.filter((worker) => worker.isActive).length - activeWorkers)}
             </strong>
           </div>
 
@@ -136,9 +150,9 @@ function SupervisorDashboard() {
             </p>
           </div>
 
-          <button className="text-btn">
+          <Link className="text-btn" to="/supervisor/issues">
             View All
-          </button>
+          </Link>
 
         </div>
 
@@ -163,20 +177,20 @@ function SupervisorDashboard() {
 
                 {tasks.map((task) => (
 
-                  <tr key={task.id}>
+                    <tr key={task._id}>
 
                     <td>
                       <div className="issue-table-title">
 
                         <div>
                           <strong>{task.title}</strong>
-                          <small>{task.issueId}</small>
+                          <small>{task._id}</small>
                         </div>
 
                       </div>
                     </td>
 
-                    <td>{task.worker}</td>
+                    <td>{task.assignedTo?.name || "Unknown"}</td>
 
                     <td>{task.location}</td>
 
@@ -192,11 +206,12 @@ function SupervisorDashboard() {
                       <StatusBadge status={task.status} />
                     </td>
 
-                    <td>{task.deadline}</td>
+                    <td>{task.deadline ? new Date(task.deadline).toLocaleDateString() : "Not set"}</td>
 
                   </tr>
 
                 ))}
+                {!loading && tasks.length === 0 && <tr><td colSpan="6" className="issue-map-empty">No assigned work is available.</td></tr>}
 
               </tbody>
 

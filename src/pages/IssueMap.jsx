@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { MapPin, Search } from "lucide-react";
 import StatusBadge from "../components/StatusBadge";
-import { issues } from "../data/mockData";
+import { apiRequest } from "../lib/api";
 
 const pinPositions = [
   { left: "18%", top: "30%" },
@@ -15,16 +16,36 @@ const pinPositions = [
 ];
 
 function IssueMap() {
-  const [search, setSearch] = useState("");
-  const [selectedIssueId, setSelectedIssueId] = useState(issues[0]?.id || "");
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [issues, setIssues] = useState([]);
+  const search = searchParams.get("q") || "";
+  const [selectedIssueId, setSelectedIssueId] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    apiRequest("/issues")
+      .then((data) => {
+        const records = data.issues || [];
+        setIssues(records);
+        setSelectedIssueId(records[0]?._id || "");
+      })
+      .catch((requestError) => {
+        if (requestError.status === 401) navigate("/login", { replace: true });
+        else setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+  }, [navigate]);
 
   const filteredIssues = issues.filter((issue) =>
-    `${issue.title} ${issue.id} ${issue.location} ${issue.status}`
+    `${issue.title} ${issue._id} ${issue.location} ${issue.status}`
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
   const selectedIssue = filteredIssues.find(
-    (issue) => issue.id === selectedIssueId
+    (issue) => issue._id === selectedIssueId
   );
 
   return (
@@ -33,9 +54,11 @@ function IssueMap() {
         <div>
           <p className="page-eyebrow">ISSUE LOCATIONS</p>
           <h1>Issue Map</h1>
-          <p>Explore reported environmental issues by area and status.</p>
+          <p>Explore accessible environmental reports by location and status.</p>
         </div>
       </div>
+
+      {error && <p className="error-message" role="alert">{error}</p>}
 
       <div className="filter-card">
         <div className="search-box">
@@ -44,7 +67,10 @@ function IssueMap() {
             type="search"
             placeholder="Search issues or locations..."
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              const value = event.target.value;
+              setSearchParams(value ? { q: value } : {}, { replace: true });
+            }}
           />
         </div>
       </div>
@@ -53,8 +79,8 @@ function IssueMap() {
         <div className="issue-map-panel">
           <div className="issue-map-heading">
             <div>
-              <h2>Baru Sahib area</h2>
-              <p>Schematic view · issue positions are illustrative</p>
+              <h2>Issue locations</h2>
+              <p>Schematic view; pin positions are illustrative, not GPS coordinates</p>
             </div>
             <span className="map-issue-count">
               {filteredIssues.length} {filteredIssues.length === 1 ? "issue" : "issues"}
@@ -77,16 +103,16 @@ function IssueMap() {
             <span className="map-area-label map-area-market">Market</span>
             <span className="map-area-label map-area-park">Community park</span>
             {filteredIssues.map((issue) => {
-              const issueIndex = issues.findIndex(({ id }) => id === issue.id);
+              const issueIndex = issues.findIndex(({ _id }) => _id === issue._id);
               const position = pinPositions[issueIndex % pinPositions.length];
 
               return (
                 <button
                   type="button"
-                  key={issue.id}
-                  className={`issue-map-pin${selectedIssueId === issue.id ? " selected" : ""}`}
+                  key={issue._id}
+                  className={`issue-map-pin${selectedIssueId === issue._id ? " selected" : ""}`}
                   style={position}
-                  onClick={() => setSelectedIssueId(issue.id)}
+                  onClick={() => setSelectedIssueId(issue._id)}
                   aria-label={`Select ${issue.title} at ${issue.location}`}
                   title={`${issue.title} · ${issue.location}`}
                 >
@@ -107,16 +133,16 @@ function IssueMap() {
             <h2>Reported issues</h2>
             <span>{filteredIssues.length}</span>
           </div>
-          {filteredIssues.length ? (
+            {loading ? <p className="issue-map-empty">Loading issues...</p> : filteredIssues.length ? (
             <div className="issue-map-list-items">
               {filteredIssues.map((issue) => (
                 <button
                   type="button"
-                  className={`issue-map-list-item${selectedIssueId === issue.id ? " selected" : ""}`}
-                  key={issue.id}
-                  onClick={() => setSelectedIssueId(issue.id)}
+                  className={`issue-map-list-item${selectedIssueId === issue._id ? " selected" : ""}`}
+                  key={issue._id}
+                  onClick={() => setSelectedIssueId(issue._id)}
                 >
-                  <span className="issue-map-list-icon">{issue.icon}</span>
+                  <span className="issue-map-list-icon">🌱</span>
                   <span className="issue-map-list-copy">
                     <strong>{issue.title}</strong>
                     <small>{issue.location}</small>

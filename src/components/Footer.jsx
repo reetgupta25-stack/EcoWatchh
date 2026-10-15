@@ -1,4 +1,4 @@
-import React from "react";
+import { Link } from "react-router-dom";
 import {
   Leaf,
   Heart,
@@ -7,6 +7,14 @@ import {
 } from "lucide-react";
 
 function Footer() {
+  let role = "citizen";
+  try {
+    role = JSON.parse(sessionStorage.getItem("ecowatchUser"))?.role || role;
+  } catch {
+    role = "citizen";
+  }
+  const rolePrefix = ["citizen", "admin", "supervisor", "worker"].includes(role) ? role : "citizen";
+
   return (
     <footer className="footer">
 
@@ -35,20 +43,19 @@ function Footer() {
         <div className="footer-column">
           <h4>Platform</h4>
 
-          <a href="/dashboard">Dashboard</a>
-          <a href="/report-issue">Report Issue</a>
-          <a href="/my-issues">My Issues</a>
-          <a href="/analytics">Analytics</a>
+          <Link to={`/${rolePrefix}/dashboard`}>Dashboard</Link>
+          <Link to={`/${rolePrefix}/map`}>Issue Map</Link>
+          {rolePrefix === "citizen" && <Link to="/citizen/report-issue">Report Issue</Link>}
+          {rolePrefix === "citizen" && <Link to="/citizen/my-issues">My Issues</Link>}
+          {rolePrefix === "admin" && <Link to="/admin/analytics">Analytics</Link>}
         </div>
 
         {/* Support */}
         <div className="footer-column">
           <h4>Support</h4>
 
-          <a href="/help">Help Center</a>
-          <a href="/contact">Contact Us</a>
-          <a href="/privacy">Privacy Policy</a>
-          <a href="/terms">Terms & Conditions</a>
+          <a href="mailto:support@ecowatch.com?subject=EcoWatch%20support">Contact Support</a>
+          <a href="mailto:support@ecowatch.com?subject=EcoWatch%20privacy%20request">Privacy Requests</a>
         </div>
 
         {/* Contact */}

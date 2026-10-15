@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -8,9 +8,16 @@ import {
   AlertCircle,
   Leaf,
 } from "lucide-react";
-import { categories } from "../../data/mockData";
+import { apiRequest } from "../../lib/api";
 
-const API_URL = "http://localhost:5000/api/issues";
+const categories = [
+  "Waste",
+  "Water Pollution",
+  "Air Pollution",
+  "Deforestation",
+  "Water Wastage",
+  "Other",
+];
 
 const ReportIssue = () => {
   const navigate = useNavigate();
@@ -60,36 +67,16 @@ const ReportIssue = () => {
     try {
       setLoading(true);
 
-      const response = await fetch(API_URL, {
+      await apiRequest("/issues", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+        body: {
           title: formData.title.trim(),
           category: formData.category,
           description: formData.description.trim(),
           location: formData.location.trim(),
           priority: formData.priority,
-        }),
+        },
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          sessionStorage.removeItem("ecowatchToken");
-          sessionStorage.removeItem("ecowatchUser");
-          navigate("/login");
-        }
-
-        throw new Error(
-          data.message || "Unable to submit the issue."
-        );
-      }
-
-      alert("Environmental issue reported successfully!");
 
       setFormData({
         title: "",
@@ -102,6 +89,10 @@ const ReportIssue = () => {
       navigate("/citizen/my-issues");
     } catch (err) {
       console.error("Submit issue error:", err);
+      if (err.status === 401) {
+        navigate("/login", { replace: true });
+        return;
+      }
       setError(
         err.message || "Something went wrong. Please try again."
       );
@@ -178,23 +169,11 @@ const ReportIssue = () => {
             >
               <option value="">Select a category</option>
 
-              {categories.map((item) => {
-                const value =
-                  typeof item === "string"
-                    ? item
-                    : item.value || item.name || item.label;
-
-                const label =
-                  typeof item === "string"
-                    ? item
-                    : item.label || item.name || item.value;
-
-                return (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                );
-              })}
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
             </select>
           </div>
 

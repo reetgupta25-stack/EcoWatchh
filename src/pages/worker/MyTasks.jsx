@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -7,18 +8,30 @@ import {
 } from "lucide-react";
 
 import StatusBadge from "../../components/StatusBadge";
-import { tasks } from "../../data/mockData";
+import { apiRequest } from "../../lib/api";
 
 function MyTasks() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    apiRequest("/issues")
+      .then((data) => setTasks(data.issues || []))
+      .catch((requestError) => {
+        if (requestError.status === 401) navigate("/login", { replace: true });
+        else setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+  }, [navigate]);
 
   const filteredTasks = tasks.filter((task) => {
 
     const matchesSearch =
-      task.title.toLowerCase().includes(search.toLowerCase()) ||
-      task.issueId.toLowerCase().includes(search.toLowerCase()) ||
-      task.location.toLowerCase().includes(search.toLowerCase());
+      `${task.title} ${task._id} ${task.location}`.toLowerCase().includes(search.toLowerCase());
 
     const matchesStatus =
       status === "All" ||
@@ -68,7 +81,8 @@ function MyTasks() {
 
       </div>
 
-      <div className="worker-tasks-grid">
+      {error && <p className="error-message" role="alert">{error}</p>}
+      {loading ? <div className="empty-state">Loading assigned tasks...</div> : filteredTasks.length ? <div className="worker-tasks-grid">
 
         {filteredTasks.map((task) => (
 
@@ -77,7 +91,7 @@ function MyTasks() {
             <div className="task-card-header">
 
               <span className="task-id">
-                {task.id}
+                {task._id}
               </span>
 
               <StatusBadge status={task.status} />
@@ -87,7 +101,7 @@ function MyTasks() {
             <h3>{task.title}</h3>
 
             <p className="task-issue-id">
-              Issue: {task.issueId}
+              {task.category}
             </p>
 
             <div className="task-card-info">
@@ -99,7 +113,7 @@ function MyTasks() {
 
               <div>
                 <CalendarDays size={16} />
-                Deadline: {task.deadline}
+                Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString() : "Not set"}
               </div>
 
             </div>
@@ -112,9 +126,9 @@ function MyTasks() {
                 {task.priority} Priority
               </span>
 
-              <button className="primary-btn">
+              <Link className="primary-btn" to={`/worker/tasks/${task._id}`}>
                 View Task
-              </button>
+              </Link>
 
             </div>
 
@@ -122,7 +136,7 @@ function MyTasks() {
 
         ))}
 
-      </div>
+      </div> : <div className="empty-state">No tasks match your filters.</div>}
 
     </div>
   );

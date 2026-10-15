@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import StatusBadge from "../../components/StatusBadge";
+import { apiRequest } from "../../lib/api";
 
 function MyIssues() {
   const navigate = useNavigate();
@@ -39,30 +40,7 @@ function MyIssues() {
       setError("");
 
       try {
-        const response = await fetch(
-          "http://localhost:5000/api/issues",
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = await response.json().catch(() => ({}));
-
-        if (response.status === 401) {
-          sessionStorage.removeItem("ecowatchToken");
-          sessionStorage.removeItem("ecowatchUser");
-          navigate("/login");
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error(
-            data.message || "Could not load your reports."
-          );
-        }
+        const data = await apiRequest("/issues");
 
         if (!Array.isArray(data.issues)) {
           throw new Error("Unexpected response from the server.");
@@ -70,7 +48,10 @@ function MyIssues() {
 
         setMyIssues(data.issues);
       } catch (err) {
-        console.error("Fetch issues error:", err);
+        if (err.status === 401) {
+          navigate("/login", { replace: true });
+          return;
+        }
         setError(
           err.message ||
             "Unable to connect to the backend. Please try again."

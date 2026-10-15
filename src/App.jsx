@@ -139,6 +139,15 @@ function App() {
         />
 
         <Route
+          path="/admin/issues/:issueId"
+          element={
+            <AdminLayout>
+              <IssueDetails role="admin" />
+            </AdminLayout>
+          }
+        />
+
+        <Route
           path="/admin/map"
           element={
             <AdminLayout>
@@ -214,6 +223,15 @@ function App() {
           element={
             <SupervisorLayout>
               <AssignedIssues />
+            </SupervisorLayout>
+          }
+        />
+
+        <Route
+          path="/supervisor/issues/:issueId"
+          element={
+            <SupervisorLayout>
+              <IssueDetails role="supervisor" />
             </SupervisorLayout>
           }
         />

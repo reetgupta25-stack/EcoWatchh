@@ -1,15 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Filter, Search } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
-import { tasks } from "../../data/mockData";
+import { apiRequest } from "../../lib/api";
 
 function ManageTasks() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    apiRequest("/issues")
+      .then((data) => setTasks((data.issues || []).filter((issue) => issue.assignedTo)))
+      .catch((requestError) => {
+        if (requestError.status === 401) navigate("/login", { replace: true });
+        else setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+  }, [navigate]);
 
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
-      `${task.title} ${task.id} ${task.issueId} ${task.worker} ${task.location}`
+      `${task.title} ${task._id} ${task.assignedTo?.name || ""} ${task.location}`
         .toLowerCase()
         .includes(search.toLowerCase());
     const matchesStatus =
@@ -27,6 +42,8 @@ function ManageTasks() {
           <p>Review task assignments, deadlines and completion status.</p>
         </div>
       </div>
+
+      {error && <p className="error-message" role="alert">{error}</p>}
 
       <div className="filter-card">
         <div className="search-box">
@@ -55,7 +72,7 @@ function ManageTasks() {
       <div className="table-card">
         <div className="table-header">
           <h2>All Tasks</h2>
-          <span>{filteredTasks.length} tasks found</span>
+          <span>{loading ? "Loading tasks..." : `${filteredTasks.length} tasks found`}</span>
         </div>
         <div className="table-wrapper">
           <table className="data-table">
@@ -81,8 +98,8 @@ function ManageTasks() {
                       </div>
                     </div>
                   </td>
-                  <td>{task.issueId}</td>
-                  <td>{task.worker}</td>
+                  <td>{task._id}</td>
+                  <td>{task.assignedTo?.name || "Unknown worker"}</td>
                   <td>{task.location}</td>
                   <td>
                     <span className={`priority-${task.priority.toLowerCase()}`}>
@@ -90,7 +107,7 @@ function ManageTasks() {
                     </span>
                   </td>
                   <td><StatusBadge status={task.status} /></td>
-                  <td>{task.deadline}</td>
+                  <td>{task.deadline ? new Date(task.deadline).toLocaleDateString() : "Not set"}</td>
                 </tr>
               ))}
               {!filteredTasks.length && (

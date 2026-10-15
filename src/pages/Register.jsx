@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Leaf,
   User,
@@ -9,6 +9,7 @@ import {
   EyeOff,
   ArrowRight,
 } from "lucide-react";
+import { apiRequest } from "../lib/api";
 
 function Register() {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +21,6 @@ function Register() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "citizen",
   });
 
   const handleChange = (e) => {
@@ -42,27 +42,14 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/auth/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-            role: formData.role,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Registration failed.");
-      }
+      const data = await apiRequest("/auth/register", {
+        method: "POST",
+        body: {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        },
+      });
 
       sessionStorage.setItem("ecowatchToken", data.token);
       sessionStorage.setItem(
@@ -70,12 +57,11 @@ function Register() {
         JSON.stringify(data.user)
       );
 
-      setMessage("Registration successful! Please sign in.");
-      window.location.assign("/login");
+      window.location.assign("/citizen/dashboard");
     } catch (error) {
       setMessage(
-        error.message === "Failed to fetch"
-          ? "Cannot reach the backend. Check that the server is running and MongoDB is connected."
+        error.status === 502 || error.message === "Failed to fetch"
+          ? "Signup is unavailable because the API server cannot be reached. Check the backend terminal; if using Atlas, allowlist this machine's IP and restart the backend."
           : error.message
       );
     } finally {
@@ -170,18 +156,6 @@ function Register() {
                 required
               />
             </div>
-          </div>
-
-          <div className="form-group">
-            <label>Register As</label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-            >
-              <option value="citizen">Citizen</option>
-              <option value="worker">Worker</option>
-            </select>
           </div>
 
           {message && (

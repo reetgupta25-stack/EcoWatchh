@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -11,12 +11,16 @@ import {
 } from "lucide-react";
 
 import StatusBadge from "../../components/StatusBadge";
+import { apiRequest } from "../../lib/api";
 
-const API_URL = "http://localhost:5000/api/issues";
-
-function IssueDetails() {
+function IssueDetails({ role = "citizen" }) {
   const { issueId } = useParams();
   const navigate = useNavigate();
+  const issueListPath = role === "citizen"
+    ? "/citizen/my-issues"
+    : role === "worker"
+      ? "/worker/tasks"
+      : `/${role}/issues`;
 
   const [issue, setIssue] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -37,29 +41,18 @@ function IssueDetails() {
       }
 
       try {
-        const response = await fetch(
-          `${API_URL}/${encodeURIComponent(issueId)}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            signal: controller.signal,
-          }
+        const data = await apiRequest(
+          `/issues/${encodeURIComponent(issueId)}`,
+          { signal: controller.signal }
         );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.message || "Unable to load issue details."
-          );
-        }
 
         setIssue(data.issue);
       } catch (err) {
         if (err.name !== "AbortError") {
+          if (err.status === 401) {
+            navigate("/login", { replace: true });
+            return;
+          }
           setError(
             err.message || "Unable to connect to the server."
           );
@@ -93,7 +86,7 @@ function IssueDetails() {
 
         <button
           className="back-btn"
-          onClick={() => navigate("/citizen/my-issues")}
+          onClick={() => navigate(issueListPath)}
         >
           <ArrowLeft size={18} />
           Back to My Issues
@@ -157,7 +150,7 @@ function IssueDetails() {
       {/* Back */}
       <button
         className="back-btn"
-        onClick={() => navigate("/citizen/my-issues")}
+        onClick={() => navigate(issueListPath)}
       >
         <ArrowLeft size={18} />
         Back to My Issues

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Leaf,
   Mail,
@@ -8,6 +8,7 @@ import {
   EyeOff,
   ArrowRight,
 } from "lucide-react";
+import { apiRequest } from "../lib/api";
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,25 +35,10 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Login failed.");
-      }
+      const data = await apiRequest("/auth/login", {
+        method: "POST",
+        body: { email: formData.email, password: formData.password },
+      });
 
       // Check the actual role returned by the backend.
       const selectedRole = formData.role.toLowerCase();

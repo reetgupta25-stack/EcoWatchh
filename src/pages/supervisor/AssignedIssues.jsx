@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -6,22 +8,30 @@ import {
 } from "lucide-react";
 
 import StatusBadge from "../../components/StatusBadge";
-import { issues } from "../../data/mockData";
+import { apiRequest } from "../../lib/api";
 
 function AssignedIssues() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
+  const [assignedIssues, setAssignedIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const assignedIssues = issues.filter(
-    (issue) => issue.assignedTo !== "Not Assigned"
-  );
+  useEffect(() => {
+    apiRequest("/issues")
+      .then((data) => setAssignedIssues(data.issues || []))
+      .catch((requestError) => {
+        if (requestError.status === 401) navigate("/login", { replace: true });
+        else setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+  }, [navigate]);
 
   const filteredIssues = assignedIssues.filter((issue) => {
 
     const matchesSearch =
-      issue.title.toLowerCase().includes(search.toLowerCase()) ||
-      issue.id.toLowerCase().includes(search.toLowerCase()) ||
-      issue.location.toLowerCase().includes(search.toLowerCase());
+      `${issue.title} ${issue._id} ${issue.location}`.toLowerCase().includes(search.toLowerCase());
 
     const matchesStatus =
       status === "All" ||
@@ -73,7 +83,9 @@ function AssignedIssues() {
             onChange={(e) => setStatus(e.target.value)}
           >
             <option value="All">All Status</option>
-            <option value="Pending">Pending</option>
+            <option value="Reported">Reported</option>
+            <option value="Under Review">Under Review</option>
+            <option value="Assigned">Assigned</option>
             <option value="In Progress">In Progress</option>
             <option value="Completed">Completed</option>
             <option value="Verified">Verified</option>
@@ -82,6 +94,8 @@ function AssignedIssues() {
         </div>
 
       </div>
+
+      {error && <p className="error-message" role="alert">{error}</p>}
 
       {/* Issues Table */}
       <div className="table-card">
@@ -92,7 +106,7 @@ function AssignedIssues() {
             <h2>Assigned Issues</h2>
 
             <span>
-              {filteredIssues.length} issues
+              {loading ? "Loading issues..." : `${filteredIssues.length} issues`}
             </span>
           </div>
 
@@ -118,19 +132,19 @@ function AssignedIssues() {
 
               {filteredIssues.map((issue) => (
 
-                <tr key={issue.id}>
+                <tr key={issue._id}>
 
                   <td>
 
                     <div className="issue-table-title">
 
                       <span>
-                        {issue.icon}
+                        🌱
                       </span>
 
                       <div>
                         <strong>{issue.title}</strong>
-                        <small>{issue.id}</small>
+                        <small>{issue._id}</small>
                       </div>
 
                     </div>
@@ -147,25 +161,28 @@ function AssignedIssues() {
                     </span>
                   </td>
 
-                  <td>{issue.assignedTo}</td>
+                  <td>{issue.assignedTo?.name || "Not assigned"}</td>
 
                   <td>
                     <StatusBadge status={issue.status} />
                   </td>
 
-                  <td>{issue.date}</td>
+                  <td>{new Date(issue.updatedAt).toLocaleDateString()}</td>
 
                   <td>
 
-                    <button className="icon-btn">
+                    <Link className="icon-btn" to={`/supervisor/issues/${issue._id}`} aria-label={`View ${issue.title}`} title="View issue">
                       <Eye size={17} />
-                    </button>
+                    </Link>
 
                   </td>
 
                 </tr>
 
               ))}
+              {!loading && filteredIssues.length === 0 && (
+                <tr><td colSpan="7" className="issue-map-empty">No supervised issues match your filters.</td></tr>
+              )}
 
             </tbody>
 

@@ -19,10 +19,14 @@ const createIssue = async (req, res, next) => {
     } = req.body;
 
     if (
-      !title?.trim() ||
-      !description?.trim() ||
-      !category ||
-      !location?.trim()
+      typeof title !== "string" ||
+      typeof description !== "string" ||
+      typeof category !== "string" ||
+      typeof location !== "string" ||
+      !title.trim() ||
+      !description.trim() ||
+      !category.trim() ||
+      !location.trim()
     ) {
       return res.status(400).json({
         success: false,
@@ -223,7 +227,7 @@ const updateIssue = async (req, res, next) => {
       }
 
       if (title !== undefined) {
-        if (!title.trim()) {
+        if (typeof title !== "string" || !title.trim()) {
           return res.status(400).json({
             success: false,
             message: "Title cannot be empty.",
@@ -233,7 +237,7 @@ const updateIssue = async (req, res, next) => {
       }
 
       if (description !== undefined) {
-        if (!description.trim()) {
+        if (typeof description !== "string" || !description.trim()) {
           return res.status(400).json({
             success: false,
             message: "Description cannot be empty.",
@@ -245,7 +249,7 @@ const updateIssue = async (req, res, next) => {
       if (category !== undefined) issue.category = category;
 
       if (location !== undefined) {
-        if (!location.trim()) {
+        if (typeof location !== "string" || !location.trim()) {
           return res.status(400).json({
             success: false,
             message: "Location cannot be empty.",

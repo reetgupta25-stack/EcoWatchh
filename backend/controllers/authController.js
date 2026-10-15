@@ -18,7 +18,9 @@ const generateToken = (userId) => {
 // REGISTER
 const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password } = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+      ? req.body
+      : {};
 
     if (
       typeof name !== "string" ||
@@ -91,7 +93,9 @@ const register = async (req, res, next) => {
 // LOGIN
 const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+      ? req.body
+      : {};
 
     if (
       typeof email !== "string" ||

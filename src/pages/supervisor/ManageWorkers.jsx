@@ -1,22 +1,33 @@
-import React, { useState } from "react";
-import {
-  Search,
-  UserCog,
-  Phone,
-  MapPin,
-  ClipboardList,
-  CheckCircle2,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, UserCog, MapPin, ClipboardList, CheckCircle2 } from "lucide-react";
 
-import { workers } from "../../data/mockData";
+import { apiRequest } from "../../lib/api";
 
 function ManageWorkers() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [workers, setWorkers] = useState([]);
+  const [issues, setIssues] = useState([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([apiRequest("/users?role=worker"), apiRequest("/issues")])
+      .then(([userData, issueData]) => {
+        setWorkers(userData.users || []);
+        setIssues(issueData.issues || []);
+      })
+      .catch((requestError) => {
+        if (requestError.status === 401) navigate("/login", { replace: true });
+        else setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+  }, [navigate]);
 
   const filteredWorkers = workers.filter(
     (worker) =>
-      worker.name.toLowerCase().includes(search.toLowerCase()) ||
-      worker.area.toLowerCase().includes(search.toLowerCase())
+      `${worker.name} ${worker.email}`.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -55,10 +66,16 @@ function ManageWorkers() {
 
       </div>
 
+      {error && <p className="error-message" role="alert">{error}</p>}
+      {loading ? <div className="empty-state">Loading workers...</div> : !filteredWorkers.length ? <div className="empty-state">No workers match your search.</div> : null}
+
       {/* Workers */}
       <div className="workers-grid">
 
-        {filteredWorkers.map((worker) => (
+        {filteredWorkers.map((worker) => {
+          const assignedIssues = issues.filter((issue) => issue.assignedTo?._id === worker._id);
+          const completedIssues = assignedIssues.filter((issue) => ["Completed", "Verified"].includes(issue.status)).length;
+          return (
 
           <div
             className="worker-card"
@@ -80,7 +97,7 @@ function ManageWorkers() {
                 }`}
               >
                 <span></span>
-                {worker.status}
+                {worker.isActive ? "Active" : "Inactive"}
               </span>
 
             </div>
@@ -102,12 +119,12 @@ function ManageWorkers() {
 
               <div>
                 <MapPin size={16} />
-                <span>{worker.area}</span>
+                <span>{worker.email}</span>
               </div>
 
               <div>
-                <Phone size={16} />
-                <span>{worker.phone}</span>
+                <ClipboardList size={16} />
+                <span>{assignedIssues.length} assigned reports</span>
               </div>
 
             </div>
@@ -120,7 +137,7 @@ function ManageWorkers() {
                 <ClipboardList size={18} />
 
                 <div>
-                  <strong>{worker.assignedTasks}</strong>
+                    <strong>{assignedIssues.length}</strong>
                   <span>Assigned</span>
                 </div>
 
@@ -131,7 +148,7 @@ function ManageWorkers() {
                 <CheckCircle2 size={18} />
 
                 <div>
-                  <strong>{worker.completedTasks}</strong>
+                    <strong>{completedIssues}</strong>
                   <span>Completed</span>
                 </div>
 
@@ -140,13 +157,13 @@ function ManageWorkers() {
             </div>
 
             {/* Action */}
-            <button className="secondary-btn worker-action">
+            <Link className="secondary-btn worker-action" to="/supervisor/issues">
               View Tasks
-            </button>
+            </Link>
 
           </div>
-
-        ))}
+          );
+        })}
 
       </div>
 
